@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anycubic-bridge"
+version = "0.1.0"
+description = "OctoPrint and Moonraker upload facade for Anycubic LAN printers"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115",
+  "httpx>=0.27",
+  "python-multipart>=0.0.9",
+  "uvicorn[standard]>=0.30",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+anycubic-bridge = "anycubic_bridge.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
