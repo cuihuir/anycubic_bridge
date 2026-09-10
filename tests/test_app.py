@@ -1,6 +1,8 @@
 """Focused unit tests for path handling and response compatibility."""
 
 from anycubic_bridge.app import (
+    Settings,
+    argument_parser,
     anycubic_body_is_success,
     moonraker_upload_response,
     safe_filename,
@@ -36,3 +38,12 @@ def test_moonraker_response_contains_upload_metadata():
     assert result["action"] == "create_file"
     assert result["item"]["root"] == "gcodes"
     assert result["item"]["size"] == 123
+
+
+def test_printer_host_cli_argument_overrides_environment(monkeypatch):
+    monkeypatch.setenv("PRINTER_HOST", "192.168.31.105")
+    args = argument_parser().parse_args(["--printer-ip", "192.168.31.106"])
+
+    settings = Settings.from_env(printer_host=args.printer_host)
+
+    assert settings.printer_host == "192.168.31.106"

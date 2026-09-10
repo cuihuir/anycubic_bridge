@@ -40,14 +40,29 @@ The default listener is `127.0.0.1:7125`. To expose it to Mainsail or Fluidd
 from another LAN host, set `LISTEN_HOST=0.0.0.0` and choose a firewall rule
 appropriate for the local network.
 
-Configuration is read from environment variables. A starting point is:
+The target printer can be selected either with a command-line option or an
+environment variable. The command-line option takes precedence:
+
+```bash
+uv run anycubic-bridge --printer-ip 192.168.31.105
+```
+
+`--printer-host` is an equivalent spelling and also accepts a hostname. The
+printer HTTP port can be changed with `--printer-port`.
+
+Configuration can also be kept in an environment file. A starting point is:
 
 ```bash
 cp .env.example .env
 uv run --env-file .env anycubic-bridge
 ```
 
-Change `PRINTER_HOST` when the printer receives a different DHCP address.
+Change `PRINTER_HOST` when the printer receives a different DHCP address, or
+override it for one run:
+
+```bash
+uv run --env-file .env anycubic-bridge --printer-ip 192.168.31.106
+```
 
 `uv sync` creates and maintains the project environment in `.venv`, and all
 commands should run through `uv run`. The committed `uv.lock` pins the

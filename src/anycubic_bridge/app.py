@@ -8,11 +8,12 @@ the local /info endpoint, and forwards the file without logging dynamic tokens.
 
 from __future__ import annotations
 
+import argparse
 import os
 import time
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Sequence
 from urllib.parse import urlparse
 
 import httpx
@@ -40,16 +41,39 @@ class Settings:
     allow_print: bool
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(
+        cls,
+        *,
+        printer_host: str | None = None,
+        printer_port: int | None = None,
+        listen_host: str | None = None,
+        port: int | None = None,
+    ) -> "Settings":
         storage = os.environ.get(
             "STORAGE_PATH",
             "~/.local/share/anycubic-bridge/gcodes",
         )
         return cls(
-            printer_host=os.environ.get("PRINTER_HOST", "192.168.31.105"),
-            printer_port=int(os.environ.get("PRINTER_PORT", "18910")),
-            listen_host=os.environ.get("LISTEN_HOST", "127.0.0.1"),
-            port=int(os.environ.get("PORT", "7125")),
+            printer_host=(
+                printer_host
+                if printer_host is not None
+                else os.environ.get("PRINTER_HOST", "192.168.31.105")
+            ),
+            printer_port=(
+                printer_port
+                if printer_port is not None
+                else int(os.environ.get("PRINTER_PORT", "18910"))
+            ),
+            listen_host=(
+                listen_host
+                if listen_host is not None
+                else os.environ.get("LISTEN_HOST", "127.0.0.1")
+            ),
+            port=(
+                port
+                if port is not None
+                else int(os.environ.get("PORT", "7125"))
+            ),
             storage_path=Path(storage).expanduser(),
             max_upload_bytes=int(
                 os.environ.get("MAX_UPLOAD_BYTES", str(1024**3))
@@ -487,12 +511,52 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 app = create_app()
 
 
-def main() -> None:
+def argument_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Run the Anycubic LAN upload bridge."
+    )
+    parser.add_argument(
+        "--printer-host",
+        "--printer-ip",
+        dest="printer_host",
+        metavar="HOST",
+        help=(
+            "Anycubic printer IP address or hostname "
+            "(overrides PRINTER_HOST)."
+        ),
+    )
+    parser.add_argument(
+        "--printer-port",
+        type=int,
+        metavar="PORT",
+        help="Anycubic printer HTTP port (overrides PRINTER_PORT).",
+    )
+    parser.add_argument(
+        "--listen-host",
+        metavar="HOST",
+        help="Bridge bind address (overrides LISTEN_HOST).",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        metavar="PORT",
+        help="Bridge listen port (overrides PORT).",
+    )
+    return parser
+
+
+def main(argv: Sequence[str] | None = None) -> None:
     import uvicorn
 
-    settings = Settings.from_env()
+    args = argument_parser().parse_args(argv)
+    settings = Settings.from_env(
+        printer_host=args.printer_host,
+        printer_port=args.printer_port,
+        listen_host=args.listen_host,
+        port=args.port,
+    )
     uvicorn.run(
-        "anycubic_bridge.app:app",
+        create_app(settings),
         host=settings.listen_host,
         port=settings.port,
         reload=False,
